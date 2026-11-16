@@ -1,0 +1,5 @@
+# Run Caddy on the host, pointing to the loopback port exposed by Compose.
+# Set PUBLIC_URL=https://artifacts.example.com in .env before starting the app.
+artifacts.example.com {
+    reverse_proxy 127.0.0.1:47381
+}

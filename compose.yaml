@@ -1,0 +1,22 @@
+services:
+  artifacts:
+    build: .
+    restart: unless-stopped
+    environment:
+      API_KEY: ${API_KEY:?Set API_KEY in .env; generate with openssl rand -hex 32}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:47381}
+    ports:
+      - "127.0.0.1:47381:47381"
+    volumes:
+      - artifacts:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s
+
+volumes:
+  artifacts:

@@ -1,0 +1,16 @@
+{
+  "name": "artifact-host",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent-native, self-hosted HTML artifacts with HTTP MCP and public share links.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "^4.3.6"
+  }
+}
