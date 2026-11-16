@@ -13,7 +13,13 @@ cp .env.example .env
 openssl rand -hex 32
 ```
 
-Put the generated value in `.env` as `API_KEY`. Set `PUBLIC_URL` to your external origin, e.g. `https://artifacts.example.com`. Do not include a path. Keep `.env` private (`chmod 600 .env`).
+Put the generated value in `.env` as `API_KEY`. `PUBLIC_URL` is required and controls the domain in every returned artifact link and MCP discovery URL. The example configuration uses:
+
+```dotenv
+PUBLIC_URL=https://artifacts.steps.app
+```
+
+Replace this with your own public origin when using another domain. Do not include a path. The app and Compose fail at startup if `PUBLIC_URL` is missing; they never silently fall back to localhost. Keep `.env` private (`chmod 600 .env`).
 
 ```sh
 docker compose up -d --build
@@ -28,13 +34,21 @@ npm ci
 npm start
 ```
 
-The Node process reads `.env`, defaults to loopback, and stores artifacts in `./data`. `HOST`, `PORT` and `DATA_DIR` are configurable. Use **one process per data directory**.
+The Node process reads `.env`, defaults to loopback, and stores artifacts in `./data`. For local-only development, explicitly set `PUBLIC_URL=http://localhost:47381`. `HOST`, `PORT` and `DATA_DIR` are configurable. The listener address is independent of the public URL: a production app can listen on port 47381 behind a proxy while returning HTTPS links without a port. Use **one process per data directory**.
 
 ### Reach it over the web
 
 Point your domain's DNS to your server, set `PUBLIC_URL=https://your-domain`, and put a TLS reverse proxy in front of port 47381. [Caddyfile.example](Caddyfile.example) is a complete Caddy site block for a proxy running on the same host. Allow inbound ports 80 and 443. The Compose port remains private on loopback; the proxy provides public access.
 
-Restart the app after changing `.env`. `PUBLIC_URL` determines returned links and the allowed browser Origin. No credentials are taken from cookies or query parameters.
+After changing `.env` with Compose, recreate the container so it receives the new environment:
+
+```sh
+docker compose up -d --build --force-recreate artifacts
+```
+
+`docker compose restart` alone does not load changed environment values. With a hosting platform or plain Docker, set `PUBLIC_URL` in that deployment's environment and redeploy. A local `.env` change does not update a remote installation. With Node directly, restart the process. `PUBLIC_URL` also determines the allowed browser Origin. No credentials are taken from cookies or query parameters.
+
+Check `https://artifacts.steps.app/` after deployment: its `mcp` value must be `https://artifacts.steps.app/mcp`. If it still says localhost, the running process still has the old environment. Artifact URLs are generated from the current configuration on every API/MCP read; stored files do not need migration. Previously copied localhost links must be replaced with the public links.
 
 ## Connect an agent over HTTP MCP
 

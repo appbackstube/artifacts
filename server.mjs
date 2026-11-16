@@ -50,6 +50,7 @@ export async function createApp({ apiKey, publicUrl, dataDir }) {
   if (!apiKey || Buffer.byteLength(apiKey) < 32 || /[\s\r\n]/.test(apiKey)) {
     throw new Error('API_KEY must contain at least 32 bytes and no whitespace. Generate one with: openssl rand -hex 32');
   }
+  if (!publicUrl) throw new Error('PUBLIC_URL is required. Set it to your public origin, for example https://artifacts.example.com');
   const base = new URL(publicUrl);
   if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password || base.search || base.hash || base.pathname !== '/') {
     throw new Error('PUBLIC_URL must be an http(s) origin, for example https://artifacts.example.com');
@@ -171,7 +172,7 @@ export async function createApp({ apiKey, publicUrl, dataDir }) {
 async function main() {
   const port = Number(process.env.PORT || 47381);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be between 1 and 65535.');
-  const publicUrl = process.env.PUBLIC_URL || `http://localhost:${port}`;
+  const publicUrl = process.env.PUBLIC_URL;
   const { server } = await createApp({ apiKey: process.env.API_KEY, publicUrl, dataDir: process.env.DATA_DIR || './data' });
   await new Promise((resolveListen, reject) => {
     server.once('error', reject);

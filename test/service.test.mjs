@@ -4,6 +4,7 @@ import { mkdtemp, rm, readdir, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
+import { spawnSync } from 'node:child_process';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { createApp } from '../server.mjs';
@@ -38,9 +39,31 @@ after(async () => {
 
 test('refuses weak credentials and unsafe public URL configuration', async () => {
   await assert.rejects(createApp({ apiKey: 'short', publicUrl, dataDir: directory }), /at least 32/);
+  await assert.rejects(createApp({ apiKey, dataDir: directory }), /PUBLIC_URL is required/);
   for (const invalid of ['file:///tmp', 'https://example.com/path', 'https://user:pass@example.com']) {
     await assert.rejects(createApp({ apiKey, publicUrl: invalid, dataDir: directory }), /PUBLIC_URL/);
   }
+});
+
+test('startup requires an explicit public URL instead of falling back to localhost', () => {
+  const result = spawnSync(process.execPath, ['server.mjs'], {
+    cwd: new URL('..', import.meta.url),
+    env: { ...process.env, API_KEY: apiKey, PUBLIC_URL: '', PORT: '47381', HOST: '127.0.0.1' },
+    timeout: 2000,
+    encoding: 'utf8',
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /PUBLIC_URL is required/);
+});
+
+test('configured public domain drives discovery and existing artifact links', async () => {
+  const response = await request('/', { headers: { 'X-Forwarded-Host': 'localhost:47381', 'X-Forwarded-Proto': 'http' } });
+  assert.equal((await response.json()).mcp, `${publicUrl}/mcp`);
+  const artifact = await store.save(source);
+  const changed = await createApp({ apiKey, publicUrl: 'https://artifacts.steps.app/', dataDir: directory });
+  assert.equal(changed.store.metadata(await changed.store.get(artifact.id)).url, `https://artifacts.steps.app/a/${artifact.id}/`);
+  assert.equal((await store.get(artifact.id)).html, source.html);
 });
 
 test('requires bearer auth for every management route and MCP method', async () => {

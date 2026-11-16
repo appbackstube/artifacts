@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     environment:
       API_KEY: ${API_KEY:?Set API_KEY in .env; generate with openssl rand -hex 32}
-      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:47381}
+      PUBLIC_URL: ${PUBLIC_URL:?Set PUBLIC_URL to the public origin, e.g. https://artifacts.steps.app}
     ports:
       - "127.0.0.1:47381:47381"
     volumes:
